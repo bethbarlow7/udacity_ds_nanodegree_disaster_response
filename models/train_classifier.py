@@ -1,7 +1,9 @@
 #import libraries
 import sys
+import os
 from sqlalchemy import create_engine
 import nltk
+import pickle
 
 import re
 import numpy as np
@@ -10,6 +12,7 @@ from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 nltk.download('punkt')
 nltk.download('wordnet')
+nltk.download('averaged_perceptron_tagger')
 
 from sklearn.metrics import confusion_matrix, classification_report
 from sklearn.multioutput import MultiOutputClassifier
@@ -35,9 +38,12 @@ def load_data(database_filepath):
     
     # load data from database
     engine = create_engine('sqlite:///' +  database_filepath)
-    df = pd.read_sql_table('DisasterResponse', engine)
+    df = pd.read_sql_table(os.path.basename(database_filepath).replace(".db",""), engine)
     y = df.iloc[:, 4:]
-    X = df.message
+    X = df['message']
+    category_names = y.columns
+    
+    return X, y, category_names
 
 def tokenize(text):
     
@@ -92,18 +98,18 @@ class StartingVerbExtractor(BaseEstimator, TransformerMixin):
     def starting_verb(self, text):
         
     # tokenize by sentences
-    sentence_list = nltk.sent_tokenize(text)
+        sentence_list = nltk.sent_tokenize(text)
         for sentence in sentence_list:
-            # tokenize each sentence into words and tag part of speech
-            pos_tags = nltk.pos_tag(tokenize(sentence))
+                # tokenize each sentence into words and tag part of speech
+                pos_tags = nltk.pos_tag(tokenize(sentence))
 
-            # index pos_tags to get the first word and part of speech tag
-            first_word, first_tag = pos_tags[0]
+                # index pos_tags to get the first word and part of speech tag
+                first_word, first_tag = pos_tags[0]
             
-            # return true if the first word is an appropriate verb or RT for retweet
-            if first_tag in ['VB', 'VBP'] or first_word == 'RT':
-                return True
-            return False
+                # return true if the first word is an appropriate verb or RT for retweet
+                if first_tag in ['VB', 'VBP'] or first_word == 'RT':
+                    return True
+                return False
 
     def fit(self, x, y=None):
         return self
@@ -136,19 +142,18 @@ def build_model():
 
         ('clf', MultiOutputClassifier(AdaBoostClassifier()))
     ])
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y)
     
-    model = model_pipeline_2.fit(X_train, y_train)
+    return model_pipeline_1
+
     
 def evaluate_model(model, X_test, Y_test, category_names):
     
     y_pred = model.predict(X_test)
     y_pred_df = pd.DataFrame(y_pred, columns = category_names)
 
-    for column in y_test.columns:
+    for column in Y_test.columns:
         print('Category: {}\n'.format(column))
-        print(classification_report(y_test[column],y_pred_df[column]))
+        print(classification_report(Y_test[column],y_pred_df[column]))
         
 
 def save_model(model, model_filepath):
@@ -161,9 +166,12 @@ def save_model(model, model_filepath):
 def main():
     
     if len(sys.argv) == 3:
+        
         database_filepath, model_filepath = sys.argv[1:]
+        
         print('Loading data...\n    DATABASE: {}'.format(database_filepath))
         X, Y, category_names = load_data(database_filepath)
+        
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
         
         print('Building model...')
