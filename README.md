@@ -5,7 +5,8 @@
 2. [Getting Started](#getting_started)
 	1. [Dependencies](#dependencies)
 	2. [Installing](#installing)
-	3. [Executing Program](#executing)
+	3. [Key Files](#keyfiles)
+	4. [Executing Program](#executing)
 3. [Authors](#authors)
 
 <a name="descripton"></a>
@@ -38,6 +39,12 @@ Clone this GIT repository:
 ```
 git clone https://github.com/bethbarlow7/udacity_ds_nanodegree_disaster_response
 ```
+<a name="keyfiles"></a>
+### Key Files:
+* data/process_data.py: ETL pipeline that loads, cleans and stores cleaned data in database_filepath
+* models/train_classifier.py: Pipeline that builds NLP pipeline and stores trained model in model_filepath
+* app/run.py: Main file to run entire pipeline - appearance of web application can be modified here
+
 <a name="executing"></a>
 ### Executing Program:
 1. Run the following commands in the project's root directory to set up your database and model.
