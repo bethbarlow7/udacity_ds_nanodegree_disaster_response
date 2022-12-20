@@ -5,7 +5,6 @@ Arguments:
     -  Path to CSV file containing messages (e.g. messages.csv)
     -  Path to CSV file containing categories (e.g. categories.csv)
     -  Path to SQLite destination database (e.g. DisasterResponse.db)
-    -  Name of Table in SQLite database (e.g. DisasterResponse)
     
 Sample Script Execution:
 > python process_data.py disaster_messages.csv disaster_categories.csv DisasterResponse.db    
@@ -22,7 +21,7 @@ import sys
 def load_datasets(messages_filepath, categories_filepath):
     
     """
-    Import messages and categories dataframes from csv and merge into a single dataframe
+    Imports messages and categories dataframes from csv and merges into a single dataframe
     
     Inputs: messages.csv, categories.csv - raw csv datasets
     Outputs: df - merged dataframe
@@ -40,7 +39,7 @@ def load_datasets(messages_filepath, categories_filepath):
 def clean_categories(df):
     
     """
-    Clean categories dataframe
+    Cleans categories dataframe
     
     Inputs: df - combined messages and uncleaned categories data
     Outputs: df - combined messages and cleaned categories data
@@ -86,14 +85,14 @@ def clean_categories(df):
 def save_data(df, database_filepath):
     
     """
-    Save cleaned dataset to SQLite database
+    Saves cleaned dataset to SQLite database
     
     Inputs: df - cleaned dataframe
             database_filepath - filepath to database
     """
     
-    engine = create_engine('sqlite:///'+database_filepath)
-    df.to_sql(database_filepath.replace('.db', ''), engine, index=False, if_exists = 'replace')
+    engine = create_engine('sqlite:///' + database_filepath)
+    df.to_sql(database_filepath.replace('.db', ''), engine, index = False, if_exists = 'replace')
     
 
 def main():
