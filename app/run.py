@@ -36,34 +36,14 @@ model_filepath = '/Users/bethbarlow/Documents/Nanodegree/udacity_ds_nanodegree_d
 app = Flask(__name__)
 
 def tokenize(text):
-    
-    """
-    Word-tokenizes input text
-    
-    Inputs: text: text message requiring tokenization
-    
-    Outputs: clean_tokens: list of tokens from text message
-    
-    """
-    
-    # regular expression for urls
+ 
     url_regex = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
-    
-    # find urls in text message
     detected_urls = re.findall(url_regex, text)
     
-    # loop over each detected url, replacing each with string
     for url in detected_urls:
         text = text.replace(url, "urlplaceholder")
-
-    # tokenize text message and save tokens in 'tokens' variable    
     tokens = word_tokenize(text)
-    
-    # initiate lemmatizer function
     lemmatizer = WordNetLemmatizer()
-
-    # loop over tokens, lemmatizing, converting to lowercase and stripping whitespace
-    # save cleaned tokens in clean_tokens variable
     clean_tokens = []
     for tok in tokens:
         clean_tok = lemmatizer.lemmatize(tok).lower().strip()
@@ -74,81 +54,177 @@ def tokenize(text):
 
 class StartingVerbExtractor(BaseEstimator, TransformerMixin):
 
-    """
-    Return single column dataframe of length equal to length of X, with booleans indicating whether first word in each entry of X is a verb or retweet
-    
-    Inputs: X: feature variable
-    
-    Outputs: Single column dataframe of booleans such that if row i = True, verb or retweet is first word in sentence of text entry i
-    
-    """
-    
-    
     def starting_verb(self, text):
         
-    # tokenize by sentences
         sentence_list = nltk.sent_tokenize(text)
         for sentence in sentence_list:
-            # tokenize each sentence into words and tag part of speech
                 pos_tags = nltk.pos_tag(tokenize(sentence))
-
-            # index pos_tags to get the first word and part of speech tag
                 first_word, first_tag = pos_tags[0]
-            
-            # return true if the first word is an appropriate verb or RT for retweet
                 if first_tag in ['VB', 'VBP'] or first_word == 'RT':
                     return True
-                return False
+        return False
 
-    def fit(self, x, y=None):
+    def fit(self, X, Y=None):
         return self
 
     def transform(self, X):
-        # apply starting_verb function to all values in X
         X_tagged = pd.Series(X).apply(self.starting_verb)
         return pd.DataFrame(X_tagged)
 
 
 # load data
-engine = create_engine('sqlite:///' + database_filepath)
-df = pd.read_sql_table(os.path.basename(database_filepath).replace(".db",""), engine)
+engine = create_engine('sqlite:///../data/DisasterResponse.db')
+df = pd.read_sql_table('DisasterResponse', engine)
 
 # load model
 model = joblib.load("../models/classifier.pkl")
 
-
 # index webpage displays cool visuals and receives user input text for model
 @app.route('/')
 @app.route('/index')
+
 def index():
     
     # extract data needed for visuals
-    # TODO: Below is an example - modify to extract data for your own visuals
     genre_counts = df.groupby('genre').count()['message']
     genre_names = list(genre_counts.index)
     
+    category_names = df.iloc[:,4:].columns
+    category_boolean = (df.iloc[:,4:] != 0).sum().values
+    category_df = pd.DataFrame(list(zip(category_names.tolist(), category_boolean.tolist())), columns =['Category Name', 'Counts']).sort_values('Counts', ascending = False)
+    
+    def genre_count_df(genre):
+        
+        """
+        Returns a dataframe containing counts of messages in each category where genre is equal to input genre
+        
+        Inputs: string containing name of input genre
+        Output: dataframe with genre, category and message counts
+        
+        """
+    
+        category_names = df.iloc[:,4:].columns
+        category_boolean = (df[df['genre'] == genre].iloc[:,4:] != 0).sum().values
+        
+        genre_list = [genre] * 36
+        category_df = pd.DataFrame(list(zip(genre_list, category_names.tolist(), category_boolean.tolist())), columns =['Genre', 'Category Name', 'Counts'])
+        
+        return category_df.sort_values('Counts', ascending = False).head(5)
+    
     # create visuals
-    # TODO: Below is an example - modify to create your own visuals
     graphs = [
-        {
-            'data': [
-                Bar(
-                    x=genre_names,
-                    y=genre_counts
-                )
-            ],
+                # GRAPH 1 - genre graph
+            {
+                'data': [
+                    Bar(
+                        x=genre_names,
+                        y=genre_counts,
+                        marker={'color': 'firebrick'}
+                    )
+                ],
 
-            'layout': {
-                'title': 'Distribution of Message Genres',
-                'yaxis': {
-                    'title': "Count"
-                },
-                'xaxis': {
-                    'title': "Genre"
+                'layout': {
+                    'title': 'Distribution of Message Genres',
+                    'yaxis': {
+                        'title': "Count"
+                    },
+                    'xaxis': {
+                        'title': "Genre"
+                    }
                 }
-            }
-        }
-    ]
+            },
+        
+                # GRAPH 2 - category graph    
+            {
+                'data': [
+                    Bar(
+                        x=category_df['Category Name'],
+                        y=category_df['Counts'],
+                        marker={'color': 'tomato'}
+                    )
+                ],
+
+                'layout': {
+                    'title': 'Distribution of Message Categories',
+                    'yaxis': {
+                        'title': "Count"
+                    },
+                    'xaxis': {
+                        'title': "Category",
+                        'tickangle': 35
+                    }
+                }
+            },
+        
+                # GRAPH 3 - category graph for news messages
+            {
+                    'data': [
+                        Bar(
+                            x=genre_count_df('news')['Category Name'],
+                            y=genre_count_df('news')['Counts'],
+                            marker={'color': 'seagreen'}
+                        )
+                    ],
+
+                    'layout': {
+                        'title': 'Top 5 News Message Categories',
+                        'yaxis': {
+                            'title': "Count"
+                        },
+                        'xaxis': {
+                            'title': "Category",
+                            'tickangle': 35
+                        }
+                    }
+              },
+        
+        
+           # GRAPH 4 - category graph for direct messages
+            {
+                    'data': [
+                        Bar(
+                            x=genre_count_df('direct')['Category Name'],
+                            y=genre_count_df('direct')['Counts'],
+                            marker={'color': 'lightseagreen'}
+                        )
+                    ],
+
+                    'layout': {
+                        'title': 'Top 5 Direct Message Categories',
+                        'yaxis': {
+                            'title': "Count"
+                        },
+                        'xaxis': {
+                            'title': "Category",
+                            'tickangle': 35
+                        }
+                    }
+              },
+        
+            # GRAPH 5 - category graph for social messages
+             {
+                    'data': [
+                        Bar(
+                            x=genre_count_df('social')['Category Name'],
+                            y=genre_count_df('social')['Counts'],
+                            marker={'color': 'darkturquoise'}
+                        )
+                    ],
+
+                    'layout': {
+                        'title': 'Top 5 Social Message Categories',
+                        'yaxis': {
+                            'title': "Count"
+                        },
+                        'xaxis': {
+                            'title': "Category",
+                            'tickangle': 35
+                        }
+                    }
+              }
+        
+        ]
+    
     
     # encode plotly graphs in JSON
     ids = ["graph-{}".format(i) for i, _ in enumerate(graphs)]
@@ -157,10 +233,11 @@ def index():
     # render web page with plotly graphs
     return render_template('master.html', ids=ids, graphJSON=graphJSON)
 
-
 # web page that handles user query and displays model results
 @app.route('/go')
+
 def go():
+    
     # save user input in query
     query = request.args.get('query', '') 
 
