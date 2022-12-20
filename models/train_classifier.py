@@ -33,17 +33,17 @@ def load_data(database_filepath):
     Inputs: df: dataframe created from DisasterResponse table in SQLite database
     
     Outputs: X: feature variable columns of df
-             y: target variable column of df
+             Y: target variable column of df
     """
     
     # load data from database
     engine = create_engine('sqlite:///' +  database_filepath)
     df = pd.read_sql_table(os.path.basename(database_filepath).replace(".db",""), engine)
-    y = df.iloc[:, 4:]
+    Y = df.iloc[:, 4:]
     X = df['message']
-    category_names = y.columns
+    category_names = Y.columns
     
-    return X, y, category_names
+    return X, Y, category_names
 
 def tokenize(text):
     
@@ -82,7 +82,6 @@ def tokenize(text):
     return clean_tokens
 
 
-
 class StartingVerbExtractor(BaseEstimator, TransformerMixin):
 
     """
@@ -109,9 +108,9 @@ class StartingVerbExtractor(BaseEstimator, TransformerMixin):
                 # return true if the first word is an appropriate verb or RT for retweet
                 if first_tag in ['VB', 'VBP'] or first_word == 'RT':
                     return True
-                return False
+        return False
 
-    def fit(self, x, y=None):
+    def fit(self, X, Y=None):
         return self
 
     def transform(self, X):
@@ -143,17 +142,17 @@ def build_model():
         ('clf', MultiOutputClassifier(AdaBoostClassifier()))
     ])
     
-    return model_pipeline_1
+    return model_pipeline_2
 
     
 def evaluate_model(model, X_test, Y_test, category_names):
     
-    y_pred = model.predict(X_test)
-    y_pred_df = pd.DataFrame(y_pred, columns = category_names)
+    Y_pred = model.predict(X_test)
+    Y_pred_df = pd.DataFrame(Y_pred, columns = category_names)
 
     for column in Y_test.columns:
         print('Category: {}\n'.format(column))
-        print(classification_report(Y_test[column],y_pred_df[column]))
+        print(classification_report(Y_test[column],Y_pred_df[column]))
         
 
 def save_model(model, model_filepath):

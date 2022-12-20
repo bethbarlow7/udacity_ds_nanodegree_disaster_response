@@ -7,6 +7,9 @@ Arguments:
     -  Path to SQLite destination database (e.g. DisasterResponse.db)
     -  Name of Table in SQLite database (e.g. DisasterResponse)
     
+Sample Script Execution:
+> python process_data.py disaster_messages.csv disaster_categories.csv DisasterResponse.db    
+    
 """
 
 #import libraries
@@ -70,6 +73,9 @@ def clean_categories(df):
     
     # concatenate the original dataframe with the new categories dataframe
     df = pd.concat([df, categories], axis = 1)
+    
+    # drop child_alone column as it has all zeros
+    df = df.drop(columns = ['child_alone'])
     
     # drop duplicates
     df = df.drop_duplicates()
