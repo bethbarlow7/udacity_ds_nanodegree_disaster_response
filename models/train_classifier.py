@@ -169,7 +169,14 @@ def build_model():
         ('clf', MultiOutputClassifier(AdaBoostClassifier()))
     ])
     
-    return model_pipeline_2
+
+    # set hyperparameters to tune: maximum depth of decision tree and learning rate.
+    parameters = {'clf__estimator__learning_rate': [1, 5, 10],
+              'clf__estimator__n_estimators': [1, 50, 100]}
+    
+    cv = GridSearchCV(model_pipeline_2, parameters, verbose = True)
+    
+    return cv
     
 def evaluate_model(model, X_test, Y_test, category_names):
     
@@ -196,7 +203,13 @@ def evaluate_model(model, X_test, Y_test, category_names):
 
 def save_model(model, model_filepath):
     
+    """
+    Saves model to disk
     
+    Inputs: model - trained classifier
+            model_filepath - filepath to trained model destination
+    
+    """
     
     # save the model to disk
     filename = model_filepath
@@ -209,8 +222,7 @@ def main():
     Main function that runs entire model training process. This comprises 6 main steps:
     
     1. load cleaned dataset from SQLite database and set target and feature variables
-    2. build model object containing steps based on feature engineering and training with classifier
-    3. optimise model by running pipeline with different hyperparameter sets using grid search
+    2. build model object containing steps based on feature engineering and training with classifier. Optimise model by running pipeline with different hyperparameter sets using grid search
     4. train model with optimal set of hyperparameters
     5. evaluate optimal model using test set
     6. save optimal model as pickle file
@@ -226,26 +238,18 @@ def main():
         
         # split input data into train and test sets
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
-        
-        # set hyperparameters to tune: maximum depth of decision tree and learning rate.
-        parameters = {'clf__estimator__learning_rate': [x * 0.1 for x in range(1, 11)],
-              'clf__estimator__n_estimators': list(range(1, 100, 5))}
-        
+    
         print('Building model...')
         model = build_model()
         
-        print('Optimising model...')
-        cv = GridSearchCV(model, param_grid = parameters)
-        cv.fit(X_train, Y_train)
-        
         print('Training model...')
-        cv.fit(X_train, Y_train)
+        model.fit(X_train, Y_train)
         
         print('Evaluating model...')
-        evaluate_model(cv, X_test, Y_test, category_names)
+        evaluate_model(model, X_test, Y_test, category_names)
 
         print('Saving model...\n    MODEL: {}'.format(model_filepath))
-        save_model(cv, model_filepath)
+        save_model(model, model_filepath)
 
         print('Trained model saved!')
 

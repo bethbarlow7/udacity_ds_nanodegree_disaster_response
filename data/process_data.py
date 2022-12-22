@@ -121,7 +121,7 @@ def main():
         print('Saving data...\n    DATABASE: {}'.format(database_filepath))
         save_data(df, database_filepath)
         
-        print('Cleaned data saved to database! Yeah man!!')
+        print('Cleaned data saved to database!')
     
     else:
         print('Please provide the filepaths of the messages and categories '\
